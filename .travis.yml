@@ -12,8 +12,8 @@ notifications:
 script:
   - git clone --branch=feature/binarybuilder https://github.com/JuliaRobotics/AprilTags.jl.git ~/jl/AprilTags.jl
   - julia -e 'using Pkg; cd(homedir()*"/jl/AprilTags.jl"); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(), Pkg.build("AprilTags");'
-  - ls ~/jl/AprilTags.jl/deps/usr -al
+  - ls ~/jl/AprilTags.jl/deps/usr/lib -al
   - cmake -DCMAKE_INSTALL_PREFIX=~/jl/AprilTags.jl/deps/usr
   - make install
-  - ls ~/jl/AprilTags.jl/deps/usr -al
+  - ls ~/jl/AprilTags.jl/deps/usr/lib -al
   - julia -e 'using Pkg; cd(homedir()*"/jl/AprilTags.jl"); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(), Pkg.test("AprilTags");'

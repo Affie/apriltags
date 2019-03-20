@@ -2,7 +2,7 @@
 language: julia
 os:
   - linux
-  - osx
+  # - osx
 dist: xenial
 julia:
   - 1.0
@@ -10,6 +10,8 @@ notifications:
   email: false
 
 script:
-  - julia --color=yes -e 'using Pkg; Pkg.develop(PackageSpec("AprilTags", rev="feature/binarybuilder"))'
-  - ls -al
-  # - cmake -DCMAKE_INSTALL_PREFIX=~/.julia/dev/AprilTags/deps
+  - git clone --branch=feature/binarybuilder https://github.com/JuliaRobotics/AprilTags.jl.git ~/jl/AprilTags.jl
+  - cmake -DCMAKE_INSTALL_PREFIX=~/jl/AprilTags.jl/deps/usr
+  - make install
+  - ls ~/jl/AprilTags.jl/deps -al
+  - julia -e 'using Pkg; cd(homedir()*"/jl/AprilTags.jl"); Pkg.develop(PackageSpec(path=pwd())); Pkg.instantiate(), Pkg.build("AprilTags"); Pkg.test("AprilTags")'

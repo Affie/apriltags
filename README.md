@@ -1,5 +1,6 @@
 AprilTag 3
 ==========
+### NOTE: This fork is maintained to provide testing and tracability for the JuliaRobotics/AprilTags.jl project
 AprilTags are a visual fiducial system popular in robotics research. This repository contains the most recent version of AprilTags, AprilTag 3, which includes a faster (>2x) detector, improved detection rate on small tags, flexible tag layouts, and pose estimation.
 
 You can find tag images for the pre-generated layouts [here](https://github.com/AprilRobotics/apriltag-imgs).

@@ -3,9 +3,11 @@
 
 ### NOTE: This fork is maintained to provide testing and tracability for the [JuliaRobotics/AprilTags.jl](https://github.com/JuliaRobotics/AprilTags.jl) project
 
-AprilTags are a visual fiducial system popular in robotics research. This repository contains the most recent version of AprilTags, AprilTag 3, which includes a faster (>2x) detector, improved detection rate on small tags, flexible tag layouts, and pose estimation.
+AprilTag is a visual fiducial system popular in robotics research. This repository contains the most recent version of AprilTag, AprilTag 3, which includes a faster (>2x) detector, improved detection rate on small tags, flexible tag layouts, and pose estimation. AprilTag consists of a small C library with minimal dependencies. Officially only linux operating systems are supported.
 
-You can find tag images for the pre-generated layouts [here](https://github.com/AprilRobotics/apriltag-imgs).
+You can find tag images for the pre-generated layouts [here](https://github.com/AprilRobotics/apriltag-imgs). We recommend using the tagStandard41h12 layout.
+
+[![Upstream Build Status](https://travis-ci.org/AprilRobotics/apriltag.svg?branch=master)](https://travis-ci.org/AprilRobotics/apriltag)
 
 ## Install
 
@@ -17,18 +19,20 @@ If you have CMake installed or it is not difficult to install, then do:
 
     $ cmake .
     $ sudo make install
-    
+
 Otherwise, we have a handwritten makefile you can use (be warned it will do slightly different things):
 
     $ make
     $ sudo make install
-    
+
 To install to a different directory than /usr/local:
 
     $ PREFIX=/some/path sudo make install
 
 
 ## Usage
+
+We recommend using the tagStandard41h12 family for all new application.
 
 A basic AprilTag application can be seen in example/apriltag_demo.c.
 
@@ -96,7 +100,7 @@ AprilTag 3 supports a wide variety of possible tag layouts in addition to the cl
 You can generate your own tag families using our other repo, [AprilTag-Generation](https://github.com/AprilRobotics/apriltag-generation).
 
 ## Pose Estimation
- 
+
 We have added methods to estimate the 3d pose of the AprilTag given camera parameters and the size of the tag. Sample code is as follows:
 
     // First create an apriltag_detection_info_t struct using your known parameters.
@@ -111,10 +115,10 @@ We have added methods to estimate the 3d pose of the AprilTag given camera param
     // Then call estimate_tag_pose.
     apriltag_pose_t pose;
     double err = estimate_tag_pose(&info, &pose);
-    
+
     // Do something with pose.
     ...
-    
+
 You can also call <code>estimate_tag_pose_orthogonal_iteration</code> which allows the user to specify the number of iterations used and also returns both possible solutions for the tag pose along with their errors.
 
 
@@ -149,3 +153,11 @@ a deep copy. Simply create an image_u8_t header for the cv::Mat data buffer:
         .stride = img.cols,
         .buf = img.data
     };
+
+Wrappers
+========
+Third-party wrappers of the apriltag code for other languages.
+
+[Python](https://github.com/duckietown/apriltags3-py)
+
+[Matlab](https://github.com/alddiaz/MATLAB_AprilTag3)

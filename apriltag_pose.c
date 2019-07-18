@@ -48,13 +48,13 @@ double orthogonal_iteration(matd_t** v, matd_t** p, matd_t** t, matd_t** R, int 
     }
     matd_scale_inplace(p_mean, 1.0/n_points);
 
-    matd_t* p_res[n_points];
+    matd_t** p_res = malloc(sizeof(matd_t *)*n_points);
     for (int i = 0; i < n_points; i++) {
         p_res[i] = matd_op("M-M", p[i], p_mean);
     }
 
     // Compute M1_inv.
-    matd_t* F[n_points];
+    matd_t** F = malloc(sizeof(matd_t *)*n_points);
     matd_t *avg_F = matd_create(3, 3);
     for (int i = 0; i < n_points; i++) {
         F[i] = calculate_F(v[i]);
@@ -89,7 +89,7 @@ double orthogonal_iteration(matd_t** v, matd_t** p, matd_t** t, matd_t** R, int 
         matd_destroy(M2);
 
         // Calculate rotation.
-        matd_t* q[n_points];
+        matd_t** q = malloc(sizeof(matd_t *)*n_points);
         matd_t* q_mean = matd_create(3, 1);
         for (int j = 0; j < n_points; j++) {
             q[j] = matd_op("M*(M*M+M)", F[j], *R, p[j], *t);
@@ -128,6 +128,8 @@ double orthogonal_iteration(matd_t** v, matd_t** p, matd_t** t, matd_t** R, int 
             matd_destroy(err_vec);
         }
         prev_error = error;
+
+        free(q);
     }
 
     matd_destroy(I3);
@@ -136,6 +138,9 @@ double orthogonal_iteration(matd_t** v, matd_t** p, matd_t** t, matd_t** R, int 
         matd_destroy(p_res[i]);
         matd_destroy(F[i]);
     }
+    free(p_res);
+    free(F);
+    matd_destroy(p_mean);
     return prev_error;
 }
 
@@ -172,12 +177,12 @@ void solve_poly_approx(double* p, int degree, double* roots, int* n_roots) {
     }
 
     // Calculate roots of derivative.
-    double p_der[degree];
+    double *p_der = malloc(sizeof(double)*degree);
     for (int i = 0; i < degree; i++) {
         p_der[i] = (i + 1) * p[i+1];
     }
 
-    double der_roots[degree - 1];
+    double *der_roots = malloc(sizeof(double)*(degree - 1));
     int n_der_roots;
     solve_poly_approx(p_der, degree - 1, der_roots, &n_der_roots);
 
@@ -250,6 +255,9 @@ void solve_poly_approx(double* p, int degree, double* roots, int* n_roots) {
             roots[(*n_roots)++] = max;
         }
     }
+
+    free(der_roots);
+    free(p_der);
 }
 
 /**
@@ -307,9 +315,9 @@ matd_t* fix_pose_ambiguities(matd_t** v, matd_t** p, matd_t* t, matd_t* R, int n
     double t_initial = atan2(sin_beta, cos_beta);
     matd_destroy(R_trans);
 
-    matd_t* v_trans[n_points];
-    matd_t* p_trans[n_points];
-    matd_t* F_trans[n_points];
+    matd_t** v_trans = malloc(sizeof(matd_t *)*n_points);
+    matd_t** p_trans = malloc(sizeof(matd_t *)*n_points);
+    matd_t** F_trans = malloc(sizeof(matd_t *)*n_points);
     matd_t* avg_F_trans = matd_create(3, 3);
     for (int i = 0; i < n_points; i++) {
         p_trans[i] = matd_op("M'*M", R_z, p[i]);
@@ -335,13 +343,21 @@ matd_t* fix_pose_ambiguities(matd_t** v, matd_t** p, matd_t* t, matd_t* R, int n
     matd_t* b1 = matd_create(3, 1);
     matd_t* b2 = matd_create(3, 1);
     for (int i = 0; i < n_points; i++) {
-        matd_add_inplace(b0, matd_op("(M-M)MM", F_trans[i], I3, R_gamma, p_trans[i]));
-        matd_add_inplace(b1, matd_op("(M-M)MMM", F_trans[i], I3, R_gamma, M1, p_trans[i]));
-        matd_add_inplace(b2, matd_op("(M-M)MMM", F_trans[i], I3, R_gamma, M2, p_trans[i]));
+        matd_t* op_tmp1 = matd_op("(M-M)MM", F_trans[i], I3, R_gamma, p_trans[i]);
+        matd_t* op_tmp2 = matd_op("(M-M)MMM", F_trans[i], I3, R_gamma, M1, p_trans[i]);
+        matd_t* op_tmp3 = matd_op("(M-M)MMM", F_trans[i], I3, R_gamma, M2, p_trans[i]);
+
+        matd_add_inplace(b0, op_tmp1);
+        matd_add_inplace(b1, op_tmp2);
+        matd_add_inplace(b2, op_tmp3);
+
+        matd_destroy(op_tmp1);
+        matd_destroy(op_tmp2);
+        matd_destroy(op_tmp3);
     }
-    b0 = matd_multiply(G, b0);
-    b1 = matd_multiply(G, b1);
-    b2 = matd_multiply(G, b2);
+    matd_t* b0_ = matd_multiply(G, b0);
+    matd_t* b1_ = matd_multiply(G, b1);
+    matd_t* b2_ = matd_multiply(G, b2);
 
     double a0 = 0;
     double a1 = 0;
@@ -349,9 +365,9 @@ matd_t* fix_pose_ambiguities(matd_t** v, matd_t** p, matd_t* t, matd_t* R, int n
     double a3 = 0;
     double a4 = 0;
     for (int i = 0; i < n_points; i++) {
-        matd_t* c0 = matd_op("(M-M)(MM+M)", I3, F_trans[i], R_gamma, p_trans[i], b0);
-        matd_t* c1 = matd_op("(M-M)(MMM+M)", I3, F_trans[i], R_gamma, M1, p_trans[i], b1);
-        matd_t* c2 = matd_op("(M-M)(MMM+M)", I3, F_trans[i], R_gamma, M2, p_trans[i], b2);
+        matd_t* c0 = matd_op("(M-M)(MM+M)", I3, F_trans[i], R_gamma, p_trans[i], b0_);
+        matd_t* c1 = matd_op("(M-M)(MMM+M)", I3, F_trans[i], R_gamma, M1, p_trans[i], b1_);
+        matd_t* c2 = matd_op("(M-M)(MMM+M)", I3, F_trans[i], R_gamma, M2, p_trans[i], b2_);
 
         a0 += matd_to_double(matd_op("M'M", c0, c0));
         a1 += matd_to_double(matd_op("2M'M", c0, c1));
@@ -364,11 +380,21 @@ matd_t* fix_pose_ambiguities(matd_t** v, matd_t** p, matd_t* t, matd_t* R, int n
         matd_destroy(c2);
     }
 
+    matd_destroy(b0);
+    matd_destroy(b1);
+    matd_destroy(b2);
+    matd_destroy(b0_);
+    matd_destroy(b1_);
+    matd_destroy(b2_);
+
     for (int i = 0; i < n_points; i++) {
         matd_destroy(p_trans[i]);
         matd_destroy(v_trans[i]);
         matd_destroy(F_trans[i]);
     }
+    free(p_trans);
+    free(v_trans);
+    free(F_trans);
     matd_destroy(avg_F_trans);
     matd_destroy(G);
 
@@ -496,6 +522,11 @@ void estimate_tag_pose_orthogonal_iteration(
     } else {
         *err2 = HUGE_VAL;
     }
+
+    for (int i = 0; i < 4; i++) {
+        matd_destroy(p[i]);
+        matd_destroy(v[i]);
+    }
 }
 
 /**
@@ -508,10 +539,16 @@ double estimate_tag_pose(apriltag_detection_info_t* info, apriltag_pose_t* pose)
     if (err1 <= err2) {
         pose->R = pose1.R;
         pose->t = pose1.t;
+        if (pose2.R) {
+            matd_destroy(pose2.t);
+        }
+        matd_destroy(pose2.R);
         return err1;
     } else {
         pose->R = pose2.R;
         pose->t = pose2.t;
+        matd_destroy(pose1.R);
+        matd_destroy(pose1.t);
         return err2;
     }
 }

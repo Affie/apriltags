@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.1)
 project(apriltag)
 
-# Set flags from Makefile
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -std=gnu99 -fPIC -Wall -Wno-unused-parameter -Wno-unused-function")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I. -O3 -fno-strict-overflow")
-
 find_package(OpenCV QUIET)
 
 include_directories(.)
